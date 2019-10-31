@@ -1,0 +1,20 @@
+{
+    "type": "line",
+    "data": {
+        "labels": ["1am","2am","3am","4am","5am","6am","7am","8am","9am","10am","11am","12am","1pm","2pm","3pm","4pm","5pm","6pm","7pm","8pm","9pm","10pm","11pm","12pm"],
+        "datasets": [
+            {
+            "label": "Monday",
+            "data": [5, 4, 4, 3, 2],
+            "backgroundColor": "rgba(129, 177, 8, 255)",
+            "borderWidth": 1
+            },
+            {
+                "label": "Tuesday",
+                "data": [6.5, 6, 4, 5, 4, 8, 9],
+                "backgroundColor": "rgba(240, 177, 160, 255)",
+                "borderWidth": 1
+            }
+        ]
+    }
+}

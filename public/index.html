@@ -1,0 +1,213 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <title>Hydrated - the app for hydration</title>
+  <meta name="description" content="Hydrated - the app for hydration">
+  <meta name="author" content="SitePoint">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel = "stylesheet" type = "text/css" href = "style.css"  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+  <div class= "shadow"><h1 id="title">Hydrated<i class="fa fa-tint icon" style="font-size:2rem;"></i></h1></div>
+</head>
+
+<body>
+
+  <div class = "script">  <h3 id ="subtitle">Hydration - Track how much you drink everyday<br/></h3>
+    <canvas id="myChart"></canvas> 
+  <span class ="information" id="side-text">Record how much water you drink throughout the day and track your data;<br/> Hydrated is a self improvement app designed to help users drink enough water per day.<br/> It uses the temperature and humidity to track how much you should be drinking in a whole day.</span>
+  <div class ="slider-container">
+    <input id="slider" type="range" name="points" min="0" max="500" oninput="sliderChange(this.value)"><br/>
+    <p class="information"><span id= waterValue>0</span>ml</p>
+  </div>
+  <button type="button" id="publish" class= "options" >Publish Water </button><br/>
+  <p class="information">Change the way your data is viewed</p>
+  <button type="button" class ="options" id="incremental">Incremental</button><button type="button" id="iterative" class = "options" >Iterative</button>
+  <p class="information">Humidity:  <span id= "humidity"></span></p>
+  <p class="information">Temperature: <span id= "temperature"></span></p>
+  <p class="information">Today you should Drink:<span id= "dailyWater"></span>Litres today</p><!--according to reccomended water intake levels adjusted for humidity and temperature-->
+  <h4>Extra Information</h4>
+  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum aliquam imperdiet rhoncus. Duis rhoncus nunc ac ipsum efficitur, vel sodales purus fringilla.lis interdum. Sed luctus mattis nunc ac volutpat. Quisque nec metus lacus. Nulla dolor tellus, aliquam sed condimentum at, finibus lobortis leo. Aenean iaculis mi convallis mi faucibus, vel tempus lorem tempor. Vestibulum blandit dolor sed mauris efficitur semper.
+  </p>  
+    <script>
+    let lat, lon;
+    let temperature, humidity, water;
+    let day, hour;
+    let waterValues = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    let myLineChart;
+    let incremental = true;
+    let dailyWater;
+
+    waterIntake();
+    
+    if ('geolocation' in navigator) {//checking for the presence of the geolocation API in navigator
+        console.log('geolocation available');
+        navigator.geolocation.getCurrentPosition(async position => {
+          lat = position.coords.latitude;
+          lon = position.coords.longitude;
+          getWeather();
+        });
+      } else {
+        console.log('geolocation not available');
+      }
+
+      async function getWeather(){
+        url = `http://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=4971600bcedfa0a5cf798e66d9caea35`;
+        const response = await fetch(url);
+        const weatherData = await response.json();
+        temperature = weatherData.main.temp;
+        humidity = weatherData.main.humidity;
+
+        let calculateWater = (18 + (humidity/100) + (temperature/10))/10;
+        dailyWater= calculateWater.toFixed(2);
+        document.getElementById('temperature').textContent = temperature;
+        document.getElementById('humidity').textContent = humidity;
+        document.getElementById('dailyWater').textContent = dailyWater;
+        
+        
+      }
+
+    async function pushData () {// This asynchrounous function posts the data to the back-end server
+      const date = new Date();
+      const hour = date.getHours();
+      const day = date.getDay();
+      const data = {temperature, humidity, water, hour, day};
+      const options = {
+        method: 'POST',
+        headers: {
+      'Content-Type': 'application/json'
+        },
+        body:JSON.stringify(data)//JSON.stringify converts an object OR JSON to a JSON strong
+      }
+      
+      const response = await fetch ('/api',options);
+//console.log(data);
+
+
+        waterIntake();
+      
+
+    }
+
+
+
+    document.getElementById("publish").addEventListener("click", function() {//publish water intake
+      console.log("publish water intake");
+      pushData();
+     
+      
+    });
+
+    document.getElementById("incremental").addEventListener("click", function() {//change the 
+      incremental = true;
+      console.log("incremental true");
+      waterIntake();
+    });
+
+    document.getElementById("iterative").addEventListener("click", function() {//change the 
+      incremental = false;
+      console.log("incremental false");
+      waterIntake();
+    });
+
+
+    async function waterIntake () {// This function retreives the water data from the database through the node.js back-end server and assigns values to the variables.
+     
+     
+      waterValues = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+      const response = await fetch('/api');
+      const data = await response.json();
+     
+     // console.log("data" , data);
+
+      //console.log(waterValues);
+
+
+      for (let j = 0; j < waterValues.length; j++) {
+        if(incremental) {
+          for(let i = 0;i < data.length; i++){
+            if (j == data[i].hour) {//calling a for loop to look through the database items
+              if (data[i].water != null){//checking to see if the water amount has been assigned
+                  waterValues[j] += data[i].water;//this line looks through the 
+                  if(j !=1) {
+                  waterValues[j] += waterValues[j-1];//this line looks through the 
+                  }
+              }
+            }
+          }
+      } else if (!incremental)
+      for(let i = 0;i < data.length; i++){
+            if (j == data[i].hour) {//calling a for loop to look through the database items
+              if (data[i].water != null){//checking to see if the water amount has been assigned
+                  waterValues[j] += data[i].water;//this line looks through the 
+                  //console.log(waterValues[j]);
+                  //console.log(i);
+                  //console.log(data[i].water);
+              }
+            }
+          }
+      }
+
+     // console.log("wd", waterValues);
+
+     // waterData.data.datasets[0].data = waterValues;
+
+      
+     if(!myLineChart){
+        let ctx = document.getElementById('myChart').getContext('2d');
+        myLineChart = new Chart(ctx, waterData);///draws the chart as soon as the data is assigned the varibale waterData
+     }else{
+        myLineChart.data.datasets[0].data = waterValues;
+
+        myLineChart.update();
+     }
+     
+    
+
+
+    }
+    
+    function sliderChange(val) {
+          document.getElementById('waterValue').innerHTML = val;//Using DOM element to retreive the value of the range slider
+          water= parseInt(val);//the value is parsed into a integer so that later it can be read in for and if statements
+      }
+
+
+
+
+
+
+
+
+
+
+  let waterData = {
+    type: 'line',
+    options: {
+    responsive: true, 
+    elements: {
+      line: {
+          tension: 0
+      }
+  },
+    bezierCurve:   false
+    },
+    data: {
+        labels: ['1am',"2am","3am","4am","5am","6am","7am","8am","9am","10am","11am","12am","1pm","2pm","3pm","4pm","5pm","6pm","7pm","8pm","9pm","10pm","11pm","12pm"],
+        datasets: [{
+            label: 'Monday',
+            data: waterValues,
+            backgroundColor: '#ADD7F6',
+            borderWidth: 1
+        } 
+      ]
+    }
+  }
+
+  // Next I need to use a Javascript API about the temperature and humidity and use it to factor in 
+</script>
+</body>
+</html>
